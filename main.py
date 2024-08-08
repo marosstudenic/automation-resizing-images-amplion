@@ -23,6 +23,7 @@ def get_size_format(b, factor=1024, suffix="B"):
 
 
 def compress_img(image_filename, image_dest_filename, quality=90, width=1400, height=None):
+    was_compressed = False
     # print(image_filename)
     # load the image to memory
     img = Image.open(image_filename)
@@ -49,11 +50,13 @@ def compress_img(image_filename, image_dest_filename, quality=90, width=1400, he
     try:
         # save the image with the corresponding quality and optimize set to True
         img.save(image_dest_filename, quality=quality, optimize=True)
+        was_compressed = True
     except OSError:
         # convert the image to RGB mode first
         img = img.convert("RGB")
         # save the image with the corresponding quality and optimize set to True
         img.save(image_dest_filename, quality=quality, optimize=True)
+        was_compressed = True
     # print("[+] New file saved:", image_dest_filename)
     # get the new image size in bytes
     new_image_size = os.path.getsize(image_dest_filename)
@@ -63,32 +66,28 @@ def compress_img(image_filename, image_dest_filename, quality=90, width=1400, he
     saving_diff = new_image_size - image_size
     # print the saving percentage
     # print(f"[+] Image size change: {saving_diff/image_size*100:.2f}% of the original image size.")
-    print("[*] Image shape", '%15s' % str(img.size),  "Size before/ after  compression:", get_size_format(image_size), "/", get_size_format(new_image_size), f"{saving_diff/image_size*100:.2f}% of the original image size.")
+    # print("[*] Image shape", '%15s' % str(img.size),  "Size before/after  compression:", get_size_format(image_size), "/", get_size_format(new_image_size), f"{saving_diff/image_size*100:.2f}% of the original image size.")
+    return was_compressed
 
 
 
 def iterate_through_folder(folder, output_folder="fotogaleria-festivalu-XXXX", quality=90, width=1440, height=None):
     counter=0
     for file in os.listdir(folder):
-        if file.lower().endswith(".jpg") or file.lower().endswith(".jpeg") or file.lower().endswith(".png"):
+        if file.lower().split('.')[-1] in ["jpg", "jpeg", 'png']:
             counter+=1
     
     for (index, file) in enumerate(os.listdir(folder)):
-        print("processing file: ", file, f"{index}/{counter}", end=" ")
+        # print("processing file: ", file, f"{index}/{counter}", end=" ")
         if file.lower().endswith(".jpg") or file.lower().endswith(".jpeg") or file.lower().endswith(".png"):
             new_filename = file.replace(file.lower().split(".")[-1], "jpg")
-            compress_img(os.path.join(folder, file), os.path.join(output_folder, new_filename), quality, width, height)
+            was_compressed = compress_img(os.path.join(folder, file), os.path.join(output_folder, new_filename), quality, width, height)
+            if was_compressed:
+                # print("[+] Done!")
+                pass
+            else:
+                print("[!] Skipped!", file, f"{index}/{counter}",)
 
-def print_filenames(folder):
-    filenames = []
-    list_file = open("list.txt", "w")
-    for file in os.listdir(folder):
-        if file.endswith(".jpg"):
-            filenames.append(file)
-    
-    filenames.sort()
-    for filename in filenames:
-        list_file.write(filename+"\n")
 
 if __name__ == "__main__":
     import argparse
@@ -123,9 +122,4 @@ if __name__ == "__main__":
     os.makedirs(small_folder, exist_ok=True)
     iterate_through_folder(args.in_folder, args.out_folder, args.quality, args.width, args.height)
     iterate_through_folder(args.in_folder, small_folder, args.quality, args.small_width, args.small_height)
-
-    print_filenames(args.in_folder)
-
-
     print("[+] Done!")
-
